@@ -43,7 +43,6 @@ def init_db():
                 component_name TEXT,
                 temperature REAL,
                 status TEXT,
-                status TEXT,
                 device_id TEXT,
                 image_path TEXT,
                 timestamp TEXT,
