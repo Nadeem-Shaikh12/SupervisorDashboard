@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+data/thermal_images/*
+data/rgb_images/*
+data/processed_images/*
+logs/
+*.db

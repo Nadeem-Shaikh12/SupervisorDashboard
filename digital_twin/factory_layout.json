@@ -1,0 +1,37 @@
+{
+    "nodes": [
+        {
+            "id": "station_forge",
+            "name": "Forge",
+            "type": "manufacturing",
+            "x": 100,
+            "y": 150
+        },
+        {
+            "id": "station_heat_treat",
+            "name": "Heat Treatment",
+            "type": "processing",
+            "x": 300,
+            "y": 150
+        },
+        {
+            "id": "station_cooling",
+            "name": "Cooling",
+            "type": "processing",
+            "x": 500,
+            "y": 150
+        },
+        {
+            "id": "station_inspection",
+            "name": "Inspection Node",
+            "type": "qc",
+            "x": 700,
+            "y": 150
+        }
+    ],
+    "edges": [
+        { "from": "station_forge", "to": "station_heat_treat" },
+        { "from": "station_heat_treat", "to": "station_cooling" },
+        { "from": "station_cooling", "to": "station_inspection" }
+    ]
+}
