@@ -79,10 +79,10 @@ class ProcessedFrame:
 # ---------------------------------------------------------------------------
 
 _STATUS_TABLE = [
-    (cfg.TEMP_FIRE_RISK, "FIRE RISK", (0,   0,   255)),
-    (cfg.TEMP_DANGER,    "DANGER",    (0,   80,  255)),
-    (cfg.TEMP_WARNING,   "WARNING",   (0,   200, 255)),
-    (0.0,                "SAFE",      (0,   200, 80)),
+    (cfg.TEMP_FIRE_RISK, "warning", (0,   0,   255)),
+    (cfg.TEMP_DANGER,    "NOK",     (0,   80,  255)),
+    (cfg.TEMP_WARNING,   "NOK",     (0,   200, 255)),
+    (0.0,                "Ok",      (0,   200, 80)),
 ]
 
 def _classify_status(max_temp: float):
@@ -90,7 +90,7 @@ def _classify_status(max_temp: float):
     for threshold, label, colour in _STATUS_TABLE:
         if max_temp >= threshold:
             return label, colour
-    return "SAFE", (0, 200, 80)
+    return "Ok", (0, 200, 80)
 
 
 # ---------------------------------------------------------------------------

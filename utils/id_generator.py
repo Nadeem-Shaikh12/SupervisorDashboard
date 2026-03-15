@@ -19,10 +19,12 @@ def generate_part_uid() -> str:
     global _seq, _last_date
     
     with _lock:
-        now_date = datetime.now().strftime("%Y%m%d")
+        now = datetime.now()
+        now_date = now.strftime("%Y%m%d")
+        now_time = now.strftime("%H%M%S")
         if now_date != _last_date:
             _last_date = now_date
             _seq = 0
             
         _seq += 1
-        return f"DV-{now_date}-{_seq:04d}"
+        return f"DV-{now_date}-{now_time}-{_seq:02d}"
