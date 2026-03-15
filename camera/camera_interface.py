@@ -213,8 +213,14 @@ class ESP32Camera(ThermalCamera):
             while not self._stop_event.is_set():
                 raw = self._recv_exact(self._sock, cfg.TCP_FRAME_SIZE)
                 if raw is None:
-                    logger.warning("[ESP32] Frame read failed – reconnecting …")
+                    logger.warning("[ESP32] Frame read failed (None returned) – reconnecting …")
                     break
+                
+                # logger.debug(f"[ESP32] Received {len(raw)} bytes.") # Too noisy
+                if self._frame_q.empty():
+                     # Only log once in a while to avoid spam
+                     if int(time.time()) % 5 == 0:
+                         logger.info(f"[ESP32] Frame received ({len(raw)} bytes)")
                 # Slice the pixel payload
                 pixel_bytes = raw[cfg.STRIP_HEAD: cfg.TCP_FRAME_SIZE - cfg.STRIP_TAIL]
                 if len(pixel_bytes) != cfg.RAW_DATA_SIZE:
@@ -246,7 +252,22 @@ class ESP32Camera(ThermalCamera):
         self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True,
                                                name="esp32-reader")
         self._reader_thread.start()
-        self._open = True
+        
+        # Wait for the first frame to arrive to confirm connection, or timeout
+        start_wait = time.time()
+        timeout = 15.0
+        while time.time() - start_wait < timeout:
+            if not self._frame_q.empty():
+                self._open = True
+                logger.info("[ESP32] Connection confirmed - first frame received.")
+                return
+            if time.time() - start_wait > 5.0 and (int(time.time() * 10) % 20 == 0):
+                logger.info(f"[ESP32] Still waiting for first frame... ({time.time() - start_wait:.1f}s)")
+            time.sleep(0.1)
+        
+        # If we get here, connection failed or timed out
+        self.close()
+        raise ConnectionError(f"Failed to connect to ESP32 at {cfg.ESP32_HOST}:{cfg.ESP32_PORT} within {timeout} seconds (no frames received).")
 
     def next_frame(self) -> Optional[np.ndarray]:
         try:

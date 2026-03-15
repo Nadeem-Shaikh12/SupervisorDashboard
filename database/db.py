@@ -43,6 +43,8 @@ def init_db():
                 component_name TEXT,
                 temperature REAL,
                 status TEXT,
+                status TEXT,
+                device_id TEXT,
                 image_path TEXT,
                 timestamp TEXT,
                 sync_status TEXT DEFAULT 'PENDING',
@@ -63,6 +65,18 @@ def init_db():
             )
         """)
         
+        # 4. Insert Default Rules (Step-7 helper)
+        default_rules = [
+            ("crankcase", 30.0, 75.0, 95.0, 120.0),
+            ("heat_exchanger", 25.0, 65.0, 85.0, 110.0),
+            ("main_bearing", 35.0, 80.0, 100.0, 130.0),
+            ("valve_manifold", 20.0, 55.0, 75.0, 100.0)
+        ]
+        cursor.executemany("""
+            INSERT OR IGNORE INTO component_temperature_rules 
+            (component_name, normal_temp_min, normal_temp_max, critical_temp, failure_temp)
+            VALUES (?, ?, ?, ?, ?)
+        """, default_rules)
         conn.commit()
     logger.info(f"Database initialized at {DB_PATH}")
 
@@ -79,15 +93,15 @@ def fetch_rule(component_name: str) -> Optional[Dict]:
             return dict(row)
     return None
 
-def insert_inspection(part_uid: str, component_name: str, temperature: float, status: str, image_path: str, timestamp: str, sync_status: str = 'PENDING'):
+def insert_inspection(part_uid: str, component_name: str, temperature: float, status: str, device_id: str, image_path: str, timestamp: str, sync_status: str = 'PENDING'):
     """Store the final inspection record."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO parts_inspection 
-            (part_uid, component_name, temperature, status, image_path, timestamp, sync_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (part_uid, component_name, temperature, status, image_path, timestamp, sync_status))
+            (part_uid, component_name, temperature, status, device_id, image_path, timestamp, sync_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (part_uid, component_name, temperature, status, device_id, image_path, timestamp, sync_status))
         conn.commit()
 
 def get_pending_inspections() -> list:

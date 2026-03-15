@@ -9,6 +9,11 @@ deployment environment.
 """
 
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # ---------------------------------------------------------------------------
 # Device identity
@@ -22,7 +27,7 @@ DEVICE_ID = os.environ.get("DREAMVISION_DEVICE_ID", "DreamVision-01")
 # "ESP32"      – Waveshare / generic ESP32 TCP stream (80x62 raw uint16 LE)
 # "SIMULATOR"  – pure-NumPy synthetic hotspot generator (no hardware needed)
 # ---------------------------------------------------------------------------
-CAMERA_BACKEND = os.environ.get("DREAMVISION_CAMERA_BACKEND", "SIMULATOR")
+CAMERA_BACKEND = os.environ.get("DREAMVISION_CAMERA_BACKEND", "ESP32")
 
 # ---------------------------------------------------------------------------
 # ESP32 / TCP stream settings  (used only when CAMERA_BACKEND == "ESP32")
@@ -90,7 +95,7 @@ METADATA_LOG_FILE  = os.path.join(LOG_DIR, "metadata.jsonl")   # newline-delimit
 
 # How often to auto-save a frame even without an explicit capture command
 #  0 = only save on explicit user request (press 's' or API call)
-AUTO_SAVE_INTERVAL = 5          # every N frames  (e.g. 5 → ~1 fps at 5 fps)
+AUTO_SAVE_INTERVAL = 0          # disabled by default to save storage
 
 # ---------------------------------------------------------------------------
 # Performance / capture

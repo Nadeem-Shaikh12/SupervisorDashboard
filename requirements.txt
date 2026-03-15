@@ -8,3 +8,10 @@ pillow
 matplotlib
 scikit-learn
 websockets
+python-multipart
+passlib[bcrypt]
+pyjwt
+sqlalchemy
+fpdf2
+python-dotenv
+pymongo[srv]

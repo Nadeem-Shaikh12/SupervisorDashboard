@@ -79,10 +79,10 @@ class ProcessedFrame:
 # ---------------------------------------------------------------------------
 
 _STATUS_TABLE = [
-    (cfg.TEMP_FIRE_RISK, "FIRE RISK", (0,   0,   255)),
-    (cfg.TEMP_DANGER,    "DANGER",    (0,   80,  255)),
-    (cfg.TEMP_WARNING,   "WARNING",   (0,   200, 255)),
-    (0.0,                "SAFE",      (0,   200, 80)),
+    (cfg.TEMP_FIRE_RISK, "warning", (0,   0,   255)),
+    (cfg.TEMP_DANGER,    "NOK",     (0,   80,  255)),
+    (cfg.TEMP_WARNING,   "NOK",     (0,   200, 255)),
+    (0.0,                "Ok",      (0,   200, 80)),
 ]
 
 def _classify_status(max_temp: float):
@@ -90,7 +90,7 @@ def _classify_status(max_temp: float):
     for threshold, label, colour in _STATUS_TABLE:
         if max_temp >= threshold:
             return label, colour
-    return "SAFE", (0, 200, 80)
+    return "Ok", (0, 200, 80)
 
 
 # ---------------------------------------------------------------------------
@@ -144,23 +144,29 @@ class ThermalProcessor:
         # 1. Compute statistics
         stats = self._compute_stats(frame_celsius)
 
-        # 2. Normalise to uint8 for visual output
+        # 2. Normalise to uint8 using percentile stretching (2% to 98%)
         norm8 = self._normalise_to_uint8(frame_celsius)
 
-        # 3. Apply colour map
-        heatmap = cv2.applyColorMap(norm8, self._cmap_id)
+        # 3. Apply CLAHE enhancement
+        enhanced = self._apply_clahe(norm8)
 
-        # 4. Detect hotspots
-        stats.hotspots = self._detect_hotspots(frame_celsius, stats)
+        # 4. Apply colour map
+        heatmap = cv2.applyColorMap(enhanced, self._cmap_id)
 
-        # 5. Classify status
+        # 5. Detect hotspots (now using the enhanced image for better selection)
+        stats.hotspots = self._detect_hotspots(frame_celsius, enhanced, stats)
+
+        # 6. Resize for display using Lanczos4 interpolation
+        h_disp, w_disp = cfg.DISPLAY_HEIGHT, cfg.DISPLAY_WIDTH
+        heatmap = cv2.resize(heatmap, (w_disp, h_disp), interpolation=cv2.INTER_LANCZOS4)
+
+        # 7. Apply sharpening (Unsharp Mask)
+        heatmap = self._apply_sharpening(heatmap)
+
+        # 8. Classify status
         status, status_colour = _classify_status(stats.max_temp)
 
-        # 6. Resize for display
-        h_disp, w_disp = cfg.DISPLAY_HEIGHT, cfg.DISPLAY_WIDTH
-        heatmap = cv2.resize(heatmap, (w_disp, h_disp), interpolation=cv2.INTER_LINEAR)
-
-        # 7. Draw overlays
+        # 9. Draw overlays
         heatmap = self._draw_overlays(heatmap, stats, status, status_colour, frame_celsius)
 
         return ProcessedFrame(
@@ -184,21 +190,38 @@ class ThermalProcessor:
 
     @staticmethod
     def _normalise_to_uint8(frame: np.ndarray) -> np.ndarray:
-        f_min = frame.min()
-        f_max = frame.max()
-        if f_max - f_min < 1e-6:
-            return np.zeros(frame.shape, dtype=np.uint8)
-        return ((frame - f_min) / (f_max - f_min) * 255.0).astype(np.uint8)
+        """Stretch contrast using the 2nd and 98th percentiles."""
+        vmin, vmax = np.percentile(frame, [2, 98])
+        if vmax - vmin < 1e-3:
+            # Fallback to absolute min/max if the frame is very flat
+            vmin, vmax = frame.min(), frame.max()
+            if vmax - vmin < 1e-6:
+                return np.zeros(frame.shape, dtype=np.uint8)
+        
+        norm = np.clip(frame, vmin, vmax)
+        return ((norm - vmin) / (vmax - vmin) * 255.0).astype(np.uint8)
 
-    def _detect_hotspots(self, frame: np.ndarray, stats: FrameStats) -> List[Hotspot]:
-        """Contour-based hotspot detection on the binarised 8-bit frame."""
+    @staticmethod
+    def _apply_clahe(img_gray: np.ndarray) -> np.ndarray:
+        """Contrast Limited Adaptive Histogram Equalization."""
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
+        return clahe.apply(img_gray)
+
+    @staticmethod
+    def _apply_sharpening(img: np.ndarray) -> np.ndarray:
+        """Sharpen using an Unsharp Mask (Gaussian blur subtraction)."""
+        blurred = cv2.GaussianBlur(img, (0, 0), 3)
+        return cv2.addWeighted(img, 1.5, blurred, -0.5, 0)
+
+    def _detect_hotspots(self, frame: np.ndarray, norm_img: np.ndarray, stats: FrameStats) -> List[Hotspot]:
+        """Contour-based hotspot detection on the normalised/enhanced 8-bit frame."""
         # Build a threshold mask
         f_min, f_max = stats.min_temp, stats.max_temp
         if f_max - f_min < 1e-6:
             return []
-        norm8 = self._normalise_to_uint8(frame)
+            
         thresh_val = int(self.HOTSPOT_THRESH_RATIO * 255)
-        _, binary = cv2.threshold(norm8, thresh_val, 255, cv2.THRESH_BINARY)
+        _, binary = cv2.threshold(norm_img, thresh_val, 255, cv2.THRESH_BINARY)
 
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 

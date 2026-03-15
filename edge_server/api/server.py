@@ -68,21 +68,38 @@ if os.path.exists(FRONTEND_DIR):
     
 DIGITAL_TWIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "digital_twin")
 if os.path.exists(DIGITAL_TWIN_DIR):
-    app.mount("/digital_twin", StaticFiles(directory=DIGITAL_TWIN_DIR), name="dtwin")
+    pass # app.mount is handled after app definition
 
-# Instantiate and start the background sync process automatically
+# Instantiate the cloud worker
 cloud_worker = CloudSynchronizer(interval_seconds=15)
 
-@app.on_event("startup")
-def start_services():
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start background sync worker
     cloud_worker.start()
     load_model()
     logger.info("Edge Server active on Factory Network.")
-
-@app.on_event("shutdown")
-def stop_services():
+    yield
+    # Shutdown: Stop background sync worker
     cloud_worker.stop()
     logger.info("Edge Server shutting down.")
+
+app = FastAPI(title="DreamVision Edge Server API", version="5.0.0", lifespan=lifespan)
+
+# Mount APIs to existing structures dynamically connecting Phase 4 Dashboard endpoints
+app.include_router(dashboard_router)
+
+# Mount Image & Web folders correctly so dashboards display graphics natively
+if os.path.exists(STATIC_IMAGE_DIR):
+    app.mount("/data", StaticFiles(directory=STATIC_IMAGE_DIR), name="images")
+
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    
+if os.path.exists(DIGITAL_TWIN_DIR):
+    app.mount("/digital_twin", StaticFiles(directory=DIGITAL_TWIN_DIR), name="dtwin")
 
 class InspectRequest(BaseModel):
     device_id: str

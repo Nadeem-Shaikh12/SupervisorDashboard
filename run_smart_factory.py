@@ -42,7 +42,7 @@ print("  => Structure Validated.")
 
 # Step 2: Validate Environment
 print("\n[STEP 2] Validating System Python Environment...")
-required_pkgs = ["fastapi", "uvicorn", "opencv-python", "numpy", "pandas", "requests", "matplotlib", "pillow", "scikit-learn", "websockets"]
+required_pkgs = ["fastapi", "uvicorn", "opencv-python", "numpy", "pandas", "requests", "matplotlib", "pillow", "scikit-learn", "websockets", "pymongo", "python-dotenv"]
 missing = []
 for pkg in required_pkgs:
     try:
@@ -88,7 +88,10 @@ except cv2.error:
     # Environment might be headless
     print("  [WARN] Headless environment detected, skipping CV2 window display.")
 cam.close()
-cv2.destroyAllWindows()
+try:
+    cv2.destroyAllWindows()
+except:
+    pass
 
 
 # Step 5: Start Edge Server

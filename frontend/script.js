@@ -168,25 +168,83 @@ ws.onmessage = (event) => {
     // Realtime Factory Event Triggered
     const data = JSON.parse(event.data);
 
-    // Alert immediately without polling
+    // Alert immediately without polling (Phase-5 Maintenance Alert)
     if (data.maintenance_alert) {
         alert("MAINTENANCE ALERT [LINE]: " + data.maintenance_alert.issue);
+    }
+
+    // Append a new row to the inspection table (Real-time update)
+    const tbody = document.getElementById('tableBody');
+    const tr = document.createElement("tr");
+
+    // Color mapping
+    const statusColors = {
+        "OK": "#4caf50",
+        "WARNING": "#fb8c00",
+        "NOK": "#ef5350"
+    };
+    const color = statusColors[data.status] || "white";
+
+    tr.innerHTML = `
+        <td>${data.part_uid}</td>
+        <td>${data.component_name}</td>
+        <td>${data.temperature.toFixed(1)}</td>
+        <td style="color: ${color}; font-weight: bold;">${data.status}</td>
+        <td>Pending</td>
+        <td>${data.timestamp}</td>
+        <td><button onclick="openModal('${data.part_uid}')">Details</button></td>
+    `;
+
+    // Insert at the top
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    // Limit table rows to prevent bloat
+    if (tbody.children.length > 50) {
+        tbody.removeChild(tbody.lastChild);
     }
 
     drawDigitalTwin(data.status);
     fetchStats();
     if (!document.getElementById('searchInput').value && !currentModalUid) {
-        fetchFeed();
+        // We refreshed the table row above, but we might want a full fetch too to ensure consistency
+        // fetchFeed(); 
     }
 };
 
+async function fetchCaptureStatus() {
+    try {
+        const res = await fetch("http://127.0.0.1:8001/status");
+        const data = await res.json();
+        const feedElem = document.getElementById('feed-device-id');
+        const backendElem = document.getElementById('feed-backend');
+
+        if (feedElem) feedElem.innerText = data.device_id;
+        if (backendElem) backendElem.innerText = data.backend;
+
+        const feedTitle = document.querySelector('.live-feed-container h3');
+        if (feedTitle) {
+            if (data.backend === "SIMULATOR") {
+                feedTitle.innerHTML = "🧪 SIMULATOR Thermal Feed";
+                feedTitle.style.color = "#4fc3f7"; // Light blue for simulator
+            } else {
+                feedTitle.innerHTML = "🔴 ESP32 Live Thermal Feed";
+                feedTitle.style.color = "#fff";
+            }
+        }
+    } catch (e) {
+        const backendElem = document.getElementById('feed-backend');
+        if (backendElem) backendElem.innerText = "Offline";
+    }
+}
 
 // Initial loads and auto-refresh
 fetchStats();
 fetchFeed();
+fetchCaptureStatus();
 setInterval(() => {
     if (!document.getElementById('searchInput').value && !currentModalUid) {
         fetchStats();
         fetchFeed();
+        fetchCaptureStatus();
     }
 }, 5000);
