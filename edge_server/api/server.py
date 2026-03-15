@@ -71,17 +71,25 @@ if os.path.exists(DIGITAL_TWIN_DIR):
     app.mount("/digital_twin", StaticFiles(directory=DIGITAL_TWIN_DIR), name="dtwin")
 
 # Instantiate and start the background sync process automatically
-cloud_worker = CloudSynchronizer(interval_seconds=15)
+import subprocess
+mongo_sync_proc = None
 
 @app.on_event("startup")
 def start_services():
-    cloud_worker.start()
+    global mongo_sync_proc
+    # Start the new Mongo Sync from friend's repo
+    mongo_sync_proc = subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), "../cloud/mongo_sync.py")])
+    # Also keep the local cloud worker if you want multi-cloud (optional, but friend's way might replace it)
+    # cloud_worker.start()
     load_model()
     logger.info("Edge Server active on Factory Network.")
 
 @app.on_event("shutdown")
 def stop_services():
-    cloud_worker.stop()
+    global mongo_sync_proc
+    if mongo_sync_proc:
+        mongo_sync_proc.terminate()
+    # cloud_worker.stop()
     logger.info("Edge Server shutting down.")
 
 class InspectRequest(BaseModel):

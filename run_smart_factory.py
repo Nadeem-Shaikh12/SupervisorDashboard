@@ -21,7 +21,7 @@ required_dirs = [
 required_files = [
     "edge_server/api/server.py",
     "edge_server/pipeline/inspection_pipeline.py",
-    "edge_server/cloud/cloud_sync.py",
+    "edge_server/cloud/mongo_sync.py",
     "dashboard/api/dashboard_routes.py",
     "analytics/production_stats.py",
     "database/verification_manager.py",
@@ -42,7 +42,7 @@ print("  => Structure Validated.")
 
 # Step 2: Validate Environment
 print("\n[STEP 2] Validating System Python Environment...")
-required_pkgs = ["fastapi", "uvicorn", "opencv-python", "numpy", "pandas", "requests", "matplotlib", "pillow", "scikit-learn", "websockets"]
+required_pkgs = ["fastapi", "uvicorn", "opencv-python", "numpy", "pandas", "requests", "matplotlib", "pillow", "scikit-learn", "websockets", "pymongo", "python-dotenv"]
 missing = []
 for pkg in required_pkgs:
     try:

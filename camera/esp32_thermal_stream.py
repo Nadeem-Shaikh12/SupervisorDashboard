@@ -4,13 +4,17 @@ import numpy as np
 import time
 import base64
 import logging
+<<<<<<< HEAD
 import camera.config as cfg
+=======
+>>>>>>> origin/main
 
 logger = logging.getLogger("dreamvision.esp32_stream")
 
 class ESP32ThermalStream:
     def __init__(self, endpoints=None):
         if endpoints is None:
+<<<<<<< HEAD
             # Prioritize the host in config.py, followed by common defaults
             self.endpoints = [f"http://{cfg.ESP32_HOST}"]
             defaults = [
@@ -22,6 +26,14 @@ class ESP32ThermalStream:
             for d in defaults:
                 if d not in self.endpoints:
                     self.endpoints.append(d)
+=======
+            self.endpoints = [
+                "http://192.168.4.1", 
+                "http://192.168.0.100", 
+                "http://192.168.1.100",
+                "http://localhost:8000"  # For local simulated streams or forwarding
+            ]
+>>>>>>> origin/main
         else:
             self.endpoints = endpoints
             

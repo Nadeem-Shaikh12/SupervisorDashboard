@@ -106,12 +106,18 @@ def run_capture():
 
         logger.info("Camera(s) ready.  Press 's' to save, 'q' to quit.")
 
+<<<<<<< HEAD
         try:
             cv2.namedWindow("DreamVision – Live Thermal Feed", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("DreamVision – Live Thermal Feed",
                              cfg.DISPLAY_WIDTH, cfg.DISPLAY_HEIGHT)
         except Exception as exc:
             logger.warning("Display error creating window: %s (headless environment?)", exc)
+=======
+        cv2.namedWindow("DreamVision – Live Thermal Feed", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("DreamVision – Live Thermal Feed",
+                         cfg.DISPLAY_WIDTH, cfg.DISPLAY_HEIGHT)
+>>>>>>> origin/main
 
         # 4. Capture loop
         while not _shutdown:
@@ -156,12 +162,16 @@ def run_capture():
                        frame_count % cfg.AUTO_SAVE_INTERVAL == 0)
 
             # ── Keyboard input ─────────────────────────────────────────
+<<<<<<< HEAD
             try:
                 key = cv2.waitKey(1) & 0xFF
             except Exception:
                 import time
                 time.sleep(0.05)
                 key = 255
+=======
+            key = cv2.waitKey(1) & 0xFF
+>>>>>>> origin/main
             if key == ord('q'):
                 logger.info("'q' pressed – exiting capture loop.")
                 break
@@ -211,10 +221,14 @@ def run_capture():
             except Exception as exc:
                 logger.warning("Error closing RGB camera: %s", exc)
 
+<<<<<<< HEAD
         try:
             cv2.destroyAllWindows()
         except Exception:
             pass
+=======
+        cv2.destroyAllWindows()
+>>>>>>> origin/main
 
         logger.info("─" * 60)
         logger.info("Session complete.")
