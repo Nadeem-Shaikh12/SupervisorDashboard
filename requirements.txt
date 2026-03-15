@@ -8,13 +8,10 @@ pillow
 matplotlib
 scikit-learn
 websockets
-<<<<<<< HEAD
 python-multipart
 passlib[bcrypt]
 pyjwt
 sqlalchemy
 fpdf2
-=======
 python-dotenv
 pymongo[srv]
->>>>>>> origin/main

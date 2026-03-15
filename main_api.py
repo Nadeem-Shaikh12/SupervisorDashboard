@@ -122,18 +122,9 @@ def _capture_loop():
                 state.frame_count   = frame_num
                 state.last_ts       = datetime.now()
 
-<<<<<<< HEAD
             # Auto-save & Post to Edge Server
             if cfg.AUTO_SAVE_INTERVAL > 0 and frame_num % cfg.AUTO_SAVE_INTERVAL == 0:
                 _save_current_frame(result, rgb_cam)
-
-
-=======
-            # Auto-save
-            if cfg.AUTO_SAVE_INTERVAL > 0 and frame_num % cfg.AUTO_SAVE_INTERVAL == 0:
-                _save_current_frame(result, rgb_cam)
-
->>>>>>> origin/main
     except Exception as exc:
         logger.exception("[Capture Thread] Unhandled error: %s", exc)
     finally:

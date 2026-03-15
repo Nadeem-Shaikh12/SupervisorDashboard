@@ -144,7 +144,6 @@ class ThermalProcessor:
         # 1. Compute statistics
         stats = self._compute_stats(frame_celsius)
 
-<<<<<<< HEAD
         # 2. Normalise to uint8 using percentile stretching (2% to 98%)
         norm8 = self._normalise_to_uint8(frame_celsius)
 
@@ -168,25 +167,6 @@ class ThermalProcessor:
         status, status_colour = _classify_status(stats.max_temp)
 
         # 9. Draw overlays
-=======
-        # 2. Normalise to uint8 for visual output
-        norm8 = self._normalise_to_uint8(frame_celsius)
-
-        # 3. Apply colour map
-        heatmap = cv2.applyColorMap(norm8, self._cmap_id)
-
-        # 4. Detect hotspots
-        stats.hotspots = self._detect_hotspots(frame_celsius, stats)
-
-        # 5. Classify status
-        status, status_colour = _classify_status(stats.max_temp)
-
-        # 6. Resize for display
-        h_disp, w_disp = cfg.DISPLAY_HEIGHT, cfg.DISPLAY_WIDTH
-        heatmap = cv2.resize(heatmap, (w_disp, h_disp), interpolation=cv2.INTER_LINEAR)
-
-        # 7. Draw overlays
->>>>>>> origin/main
         heatmap = self._draw_overlays(heatmap, stats, status, status_colour, frame_celsius)
 
         return ProcessedFrame(
@@ -210,7 +190,6 @@ class ThermalProcessor:
 
     @staticmethod
     def _normalise_to_uint8(frame: np.ndarray) -> np.ndarray:
-<<<<<<< HEAD
         """Stretch contrast using the 2nd and 98th percentiles."""
         vmin, vmax = np.percentile(frame, [2, 98])
         if vmax - vmin < 1e-3:
@@ -236,29 +215,13 @@ class ThermalProcessor:
 
     def _detect_hotspots(self, frame: np.ndarray, norm_img: np.ndarray, stats: FrameStats) -> List[Hotspot]:
         """Contour-based hotspot detection on the normalised/enhanced 8-bit frame."""
-=======
-        f_min = frame.min()
-        f_max = frame.max()
-        if f_max - f_min < 1e-6:
-            return np.zeros(frame.shape, dtype=np.uint8)
-        return ((frame - f_min) / (f_max - f_min) * 255.0).astype(np.uint8)
-
-    def _detect_hotspots(self, frame: np.ndarray, stats: FrameStats) -> List[Hotspot]:
-        """Contour-based hotspot detection on the binarised 8-bit frame."""
->>>>>>> origin/main
         # Build a threshold mask
         f_min, f_max = stats.min_temp, stats.max_temp
         if f_max - f_min < 1e-6:
             return []
-<<<<<<< HEAD
             
         thresh_val = int(self.HOTSPOT_THRESH_RATIO * 255)
         _, binary = cv2.threshold(norm_img, thresh_val, 255, cv2.THRESH_BINARY)
-=======
-        norm8 = self._normalise_to_uint8(frame)
-        thresh_val = int(self.HOTSPOT_THRESH_RATIO * 255)
-        _, binary = cv2.threshold(norm8, thresh_val, 255, cv2.THRESH_BINARY)
->>>>>>> origin/main
 
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
