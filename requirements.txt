@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+opencv-python
+numpy
+pandas
+requests
+pillow
+matplotlib
+scikit-learn
+websockets
+python-multipart
+passlib[bcrypt]
+pyjwt
+sqlalchemy
+fpdf2
