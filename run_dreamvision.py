@@ -53,16 +53,11 @@ logger = logging.getLogger("dreamvision.startup")
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 
-BANNER = r"""
-  ____                        __     ___     _
- |  _ \ _ __ ___  __ _ _ __ \ \   / (_)___(_) ___  _ __
- | | | | '__/ _ \/ _` | '_ \ \ \ / /| / __| |/ _ \| '_ \
- | |_| | | |  __/ (_| | | | | \ V / | \__ \ | (_) | | | |
- |____/|_|  \___|\__,_|_| |_|  \_/  |_|___/_|\___/|_| |_|
-
-  DreamVision Smart Factory Inspection Platform  v6.0
-  Industry-4.0 Thermal AI Inspection System
-  ─────────────────────────────────────────────────────
+BANNER = """
+  +----------------------------------------------------------+
+  |    DreamVision Smart Factory Inspection Platform  v6.0   |
+  |    Industry-4.0 Thermal AI Inspection System             |
+  +----------------------------------------------------------+
 """
 
 # ── Step 1 & 2: Database Setup ────────────────────────────────────────────────
