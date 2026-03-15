@@ -30,7 +30,7 @@ import base64
 import logging
 import os
 import threading
-import base64
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
@@ -58,10 +58,22 @@ import camera.config as cfg
 setup_logging()
 ensure_directories()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    t = threading.Thread(target=_capture_loop, daemon=True, name="capture-loop")
+    t.start()
+    logger.info("DreamVision Capture API ready. Capture thread started.")
+    yield
+    # Shutdown
+    state.running = False
+    logger.info("DreamVision Capture API shutting down.")
+
 app = FastAPI(
     title="DreamVision Phase-1 Capture API",
     description="Local thermal camera capture API for the DreamVision smart-factory prototype.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -169,17 +181,7 @@ def _save_current_frame(result, rgb_cam: Optional[RGBCamera]) -> dict:
 # Startup / shutdown
 # ---------------------------------------------------------------------------
 
-@app.on_event("startup")
-def _startup():
-    t = threading.Thread(target=_capture_loop, daemon=True, name="capture-loop")
-    t.start()
-    logger.info("DreamVision API ready.  Capture thread started.")
-
-
-@app.on_event("shutdown")
-def _shutdown():
-    state.running = False
-    logger.info("DreamVision API shutting down.")
+# Startup/shutdown handled by lifespan context manager above
 
 
 # ---------------------------------------------------------------------------
