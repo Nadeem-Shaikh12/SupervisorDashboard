@@ -203,11 +203,14 @@ ws.onmessage = (event) => {
         tbody.removeChild(tbody.lastChild);
     }
 
-    drawDigitalTwin(data.status);
+    // UPGRADE 4: Update the production line digital twin node colours
+    if (typeof updateDigitalTwin === "function") {
+        updateDigitalTwin(data.status);
+    }
     fetchStats();
     if (!document.getElementById('searchInput').value && !currentModalUid) {
-        // We refreshed the table row above, but we might want a full fetch too to ensure consistency
-        // fetchFeed(); 
+        // We refreshed the table row above; full re-fetch on demand
+        // fetchFeed();
     }
 };
 
