@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8002";
+const API_BASE = "http://127.0.0.1:8002";
 let currentModalUid = null;
 let chartInstance = null;
 
@@ -165,28 +165,72 @@ const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/inspections`);
 
 ws.onmessage = (event) => {
-    // Realtime Factory Event Triggered
+    // Realtime Factory Event Triggered (Step 6)
     const data = JSON.parse(event.data);
 
-    // Alert immediately without polling
-    if (data.maintenance_alert) {
-        alert("MAINTENANCE ALERT [LINE]: " + data.maintenance_alert.issue);
+    // Append a new row to the inspection table
+    const tbody = document.getElementById('tableBody');
+    const tr = document.createElement("tr");
+    
+    // Color mapping (Step 6)
+    const statusColors = { 
+        "OK": "var(--status-ok)", 
+        "WARNING": "var(--status-warn)", 
+        "NOK": "var(--status-nok)" 
+    };
+    const color = statusColors[data.status] || "white";
+
+    tr.innerHTML = `
+        <td>${data.part_uid}</td>
+        <td>${data.component_name}</td>
+        <td>${data.temperature.toFixed(1)}</td>
+        <td style="color: ${color}; font-weight: bold;">${data.status}</td>
+        <td>Pending</td>
+        <td>${data.timestamp}</td>
+        <td><button onclick="openModal('${data.part_uid}')">Details</button></td>
+    `;
+    
+    // Insert at the top
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    // Limit table rows to prevent bloat
+    if (tbody.children.length > 50) {
+        tbody.removeChild(tbody.lastChild);
     }
 
     drawDigitalTwin(data.status);
     fetchStats();
-    if (!document.getElementById('searchInput').value && !currentModalUid) {
-        fetchFeed();
-    }
 };
 
+
+async function fetchCaptureStatus() {
+    try {
+        const res = await fetch("http://127.0.0.1:8001/status");
+        const data = await res.json();
+        document.getElementById('feed-device-id').innerText = data.device_id;
+        document.getElementById('feed-backend').innerText = data.backend;
+        
+        const feedTitle = document.querySelector('.live-feed-container h3');
+        if (data.backend === "SIMULATOR") {
+            feedTitle.innerHTML = "🧪 SIMULATOR Thermal Feed";
+            feedTitle.style.color = "#4fc3f7"; // Light blue for simulator
+        } else {
+            feedTitle.innerHTML = "🔴 ESP32 Live Thermal Feed";
+            feedTitle.style.color = "#fff";
+        }
+    } catch (e) {
+        document.getElementById('feed-backend').innerText = "Offline";
+    }
+}
 
 // Initial loads and auto-refresh
 fetchStats();
 fetchFeed();
+fetchCaptureStatus();
 setInterval(() => {
     if (!document.getElementById('searchInput').value && !currentModalUid) {
         fetchStats();
         fetchFeed();
+        fetchCaptureStatus();
     }
 }, 5000);

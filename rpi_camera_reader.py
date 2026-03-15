@@ -39,23 +39,33 @@ def main():
     print("=" * 60)
 
     # MJPEG stream URL from main_api.py
-    stream_url = f"http://localhost:8001/stream"
+    stream_url = f"http://127.0.0.1:8001/stream"
     
     print(f"Connecting to stream: {stream_url}...")
-    cap = cv2.VideoCapture(stream_url)
+    
+    cap = None
+    retry_count = 0
+    while retry_count < 10:
+        cap = cv2.VideoCapture(stream_url)
+        if cap.isOpened():
+            print(" [✓] Connected to Capture API.")
+            break
+        print(f" [!] Stream not ready yet. Retrying ({retry_count+1}/10)...")
+        time.sleep(3)
+        retry_count += 1
 
-    if not cap.isOpened():
-        print("ERROR: Could not open stream. Please ensure 'main_api.py' is running.")
+    if cap is None or not cap.isOpened():
+        print("ERROR: Could not open stream after 10 attempts. Please ensure 'main_api.py' is running.")
         return
 
-    # Create display window
+    # Create display window if not headless
+    headless = os.environ.get("DREAMVISION_HEADLESS", "false").lower() == "true"
     window_name = "DreamVision Pro Live Feed"
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, cfg.DISPLAY_WIDTH, cfg.DISPLAY_HEIGHT)
+    if not headless:
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, cfg.DISPLAY_WIDTH, cfg.DISPLAY_HEIGHT)
 
-    print("\nControls:")
-    print(" - 's' : Manual high-res save (local PNG)")
-    print(" - 'q' : Quit viewer")
+    print(f"\n [INFO] Running in {'HEADLESS' if headless else 'GUI'} mode.")
     print("\n [INFO] Auto-syncing to Supervisor Dashboard every 3 seconds...")
 
     last_sync = 0
@@ -70,7 +80,8 @@ def main():
                 cap = cv2.VideoCapture(stream_url)
                 continue
 
-            cv2.imshow(window_name, frame)
+            if not headless:
+                cv2.imshow(window_name, frame)
 
             # Automatic Sync Logic (throttled)
             if time.time() - last_sync > sync_interval:

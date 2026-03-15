@@ -35,7 +35,7 @@ def get_inspections_collection(client: MongoClient):
     """
     if client is None:
         return None
-    db = client["dreamvision_db"]
+    db = client["dreamvision"]
     return db["inspections"]
 
 if __name__ == "__main__":

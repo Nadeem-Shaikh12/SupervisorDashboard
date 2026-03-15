@@ -21,6 +21,10 @@ from analytics.anomaly_detection import detect_anomaly
 from analytics.predictive_maintenance import run_predictive_maintenance
 from analytics.defect_predictor import predict_defect_probability
 
+import threading
+
+# Removed local _get_next_uid to use consolidated generator in utils.id_generator
+
 logger = logging.getLogger("dreamvision.pipeline")
 
 PROCESSED_IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "processed_images")
@@ -58,13 +62,21 @@ def run_edge_inspection(device_id: str, thermal_b64: str, rgb_b64: str, timestam
 
     # 4. Thermal Extract & Evaluate
     peak_temp, heatmap = extract_temperature(thermal_float)
-    status = evaluate_temperature(peak_temp, rule["normal_temp_max"], rule["failure_temp"])
+    status_raw = evaluate_temperature(peak_temp, rule["normal_temp_max"], rule["failure_temp"])
     
+    # Map status to user requested labels: OK / WARNING / NOK
+    # Logic: Status from evaluator is "OK", "WARNING", "CRITICAL"
+    # User wants: OK, WARNING, NOK
+    if status_raw == "CRITICAL":
+        status = "NOK"
+    else:
+        status = status_raw
+
     # ML Prediction
     predicted_prob = predict_defect_probability(component_name, peak_temp)
     logger.info(f"Rule Evaluator: Component '{component_name}' @ {round(peak_temp, 2)}°C -> {status} (ML Defect Prob: {predicted_prob:.2f})")
 
-    # 5. Unique ID
+    # 5. Unique ID - Format: DV-{date}-{time}-{sequence}
     part_uid = generate_part_uid()
     
     # 6. Save image
@@ -77,8 +89,8 @@ def run_edge_inspection(device_id: str, thermal_b64: str, rgb_b64: str, timestam
     cv2.imwrite(img_path, heatmap)
     rel_path = f"data/processed_images/{img_filename}"
     
-    # 7. Local File Storage
-    insert_inspection(part_uid, component_name, peak_temp, status, rel_path, timestamp_str)
+    # 7. Local File Storage - Including device_id as requested in Step 3
+    insert_inspection(part_uid, component_name, peak_temp, status, device_id, rel_path, timestamp_str)
 
     # 8. Trigger Background Factory Analytics
     detect_anomaly(component_name, peak_temp, timestamp_str)
@@ -90,6 +102,7 @@ def run_edge_inspection(device_id: str, thermal_b64: str, rgb_b64: str, timestam
         "component_name": component_name,
         "temperature": float(np.round(peak_temp, 2)),
         "status": status,
+        "device_id": device_id,
         "timestamp": timestamp_str,
         "image_path": rel_path,
         "predicted_defect_probability": predicted_prob

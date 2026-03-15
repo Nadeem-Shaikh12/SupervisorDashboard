@@ -30,6 +30,7 @@ import base64
 import logging
 import os
 import threading
+import base64
 from datetime import datetime
 from typing import Optional
 
@@ -99,9 +100,18 @@ def _capture_loop():
     rgb_cam     = RGBCamera() if cfg.RGB_ENABLED else None
     processor   = ThermalProcessor()
 
-    thermal_cam.open()
+    try:
+        thermal_cam.open()
+    except Exception as e:
+        logger.error(f"[Capture Thread] Failed to open {cfg.CAMERA_BACKEND}: {e}")
+        state.running = False
+        return
+
     if rgb_cam:
-        rgb_cam.open()
+        try:
+            rgb_cam.open()
+        except:
+            pass
 
     state.running = True
     frame_num = 0
@@ -305,8 +315,8 @@ def mjpeg_stream():
 if __name__ == "__main__":
     uvicorn.run(
         "main_api:app",
-        host=cfg.API_HOST,
-        port=cfg.API_PORT,
-        reload=cfg.API_RELOAD,
+        host="127.0.0.1",
+        port=8001,
+        reload=False,
         log_level="info",
     )

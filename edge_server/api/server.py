@@ -68,29 +68,38 @@ if os.path.exists(FRONTEND_DIR):
     
 DIGITAL_TWIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "digital_twin")
 if os.path.exists(DIGITAL_TWIN_DIR):
-    app.mount("/digital_twin", StaticFiles(directory=DIGITAL_TWIN_DIR), name="dtwin")
+    pass # app.mount is handled after app definition
 
-# Instantiate and start the background sync process automatically
-import subprocess
-mongo_sync_proc = None
+# Instantiate the cloud worker
+cloud_worker = CloudSynchronizer(interval_seconds=15)
 
-@app.on_event("startup")
-def start_services():
-    global mongo_sync_proc
-    # Start the new Mongo Sync from friend's repo
-    mongo_sync_proc = subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), "../cloud/mongo_sync.py")])
-    # Also keep the local cloud worker if you want multi-cloud (optional, but friend's way might replace it)
-    # cloud_worker.start()
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start background sync worker
+    cloud_worker.start()
     load_model()
     logger.info("Edge Server active on Factory Network.")
-
-@app.on_event("shutdown")
-def stop_services():
-    global mongo_sync_proc
-    if mongo_sync_proc:
-        mongo_sync_proc.terminate()
-    # cloud_worker.stop()
+    yield
+    # Shutdown: Stop background sync worker
+    cloud_worker.stop()
     logger.info("Edge Server shutting down.")
+
+app = FastAPI(title="DreamVision Edge Server API", version="5.0.0", lifespan=lifespan)
+
+# Mount APIs to existing structures dynamically connecting Phase 4 Dashboard endpoints
+app.include_router(dashboard_router)
+
+# Mount Image & Web folders correctly so dashboards display graphics natively
+if os.path.exists(STATIC_IMAGE_DIR):
+    app.mount("/data", StaticFiles(directory=STATIC_IMAGE_DIR), name="images")
+
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    
+if os.path.exists(DIGITAL_TWIN_DIR):
+    app.mount("/digital_twin", StaticFiles(directory=DIGITAL_TWIN_DIR), name="dtwin")
 
 class InspectRequest(BaseModel):
     device_id: str
@@ -114,8 +123,15 @@ async def inspect_component(req: InspectRequest):
             req.timestamp
         )
         
-        # Broadcast to Digital Twin Dashboard
-        await ws_manager.broadcast(response)
+        # Broadcast an event to connected dashboard clients as requested in Step 5
+        broadcast_msg = {
+            "part_uid": response["part_uid"],
+            "component_name": response["component_name"],
+            "temperature": response["temperature"],
+            "status": response["status"],
+            "timestamp": response["timestamp"]
+        }
+        await ws_manager.broadcast(broadcast_msg)
         
         return JSONResponse(content=response)
     
@@ -161,4 +177,4 @@ async def trigger_ml_training():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("edge_server.api.server:app", host="0.0.0.0", port=8002, reload=False)
+    uvicorn.run("edge_server.api.server:app", host="127.0.0.1", port=8002, reload=False)
