@@ -132,12 +132,15 @@ function updateChart(data) {
 
 // (Removed WebSocket dependency since we are polling every 5s per user request)
 
-// Initial loads and auto-refresh
+// Initial loads
 fetchStats();
 fetchFeed();
-setInterval(() => {
+
+// Server-Sent Events (SSE) for instant zero-refresh updates
+const evtSource = new EventSource(`${API_BASE}/stream`);
+evtSource.onmessage = function(event) {
     if (!document.getElementById('searchInput').value && !currentModalUid) {
-        fetchStats();
         fetchFeed();
+        fetchStats();
     }
-}, 5000);
+};
