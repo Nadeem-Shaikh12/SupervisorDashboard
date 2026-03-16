@@ -159,6 +159,15 @@ async def websocket_inspections(websocket: WebSocket):
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
 
+@app.post("/dashboard/broadcast_new", tags=["Supervisor Dashboard"])
+async def broadcast_new_inspection(req: dict):
+    """
+    Internal endpoint called by external scripts (like run_live_thermal.py) 
+    to instantly update the Web Dashboard UI when a manual snapshot is taken.
+    """
+    await ws_manager.broadcast(req)
+    return {"status": "broadcasted"}
+
 @app.post("/train_model", tags=["Factory AI"])
 async def trigger_ml_training():
     """Triggers the Scikit-Learn Data Science pipeline using collected history."""

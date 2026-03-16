@@ -22,7 +22,7 @@ def verify_inspection(part_uid: str, verified_status: str, verified_by: str) -> 
         
         cursor.execute("""
             UPDATE parts_inspection
-            SET verified_status = ?, verified_by = ?, verification_timestamp = ?
+            SET verified_status = ?, verified_by = ?, verification_timestamp = ?, sync_status = 'PENDING'
             WHERE part_uid = ?
         """, (verified_status, verified_by, now, part_uid))
         

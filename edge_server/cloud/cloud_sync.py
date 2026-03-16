@@ -72,8 +72,13 @@ class CloudSynchronizer:
                 documents.append(doc)
 
             if documents:
-                result = collection.insert_many(documents)
-                logger.info(f"Successfully synced {len(result.inserted_ids)} records to MongoDB Atlas.")
+                from pymongo import UpdateOne
+                operations = [
+                    UpdateOne({"part_uid": doc["part_uid"]}, {"$set": doc}, upsert=True)
+                    for doc in documents
+                ]
+                result = collection.bulk_write(operations)
+                logger.info(f"Successfully synced {len(documents)} records to MongoDB Atlas (Modified: {result.modified_count}, Upserted: {result.upserted_count}).")
                 
                 # Update SQLite sync_status to SYNCED
                 mark_inspections_synced([doc["part_uid"] for doc in documents])
