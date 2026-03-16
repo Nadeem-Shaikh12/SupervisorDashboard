@@ -50,13 +50,34 @@ Adafruit_MLX90640 mlx;
 float frame[32 * 24];  // 768 floats
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-// Map a float temp to a 16-bit RGB565 colour (blue→green→red).
-uint16_t tempToColor(float t, float tMin, float tMax) {
-  float ratio = constrain((t - tMin) / (tMax - tMin), 0.0f, 1.0f);
-  uint8_t r = (uint8_t)(ratio * 255);
-  uint8_t b = (uint8_t)((1.0f - ratio) * 255);
-  uint8_t g = (uint8_t)(ratio < 0.5f ? ratio * 2 * 255 : (1.0f - ratio) * 2 * 255);
-  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);  // RGB565
+
+// Color Mapping Function - dynamic temperature-based colors
+uint16_t tempToColor(float t, float minT=20, float maxT=50) {
+  int val = constrain((int)((t-minT)*255.0f/(maxT-minT)), 0, 255);
+  if (val < 85) return tft.color565(val*3, 0, 255-val*3);      // Blue
+  if (val < 170) return tft.color565(255, (val-85)*3, 0);     // Green→Yellow
+  return tft.color565(255, 255-(val-170)*3, 0);               // Red
+}
+
+// Bilinear Interpolation
+void interpolate(float *raw, uint16_t *display, float minT, float maxT, int srcW=32, int srcH=24, int dstW=320, int dstH=240) {
+  for (int y=0; y<dstH; y++) {
+    int sy = (y * srcH) / dstH;
+    int sy2 = (sy+1 >= srcH) ? sy : sy+1;
+    float ay = ((float)y * srcH / dstH) - sy;
+    for (int x=0; x<dstW; x++) {
+      int sx = (x * srcW) / dstW;
+      int sx2 = (sx+1 >= srcW) ? sx : sx+1;
+      float ax = ((float)x * srcW / dstW) - sx;
+      
+      // Bilinear interpolation
+      float t1 = raw[sy*srcW+sx] * (1-ax) + raw[sy*srcW+sx2] * ax;
+      float t2 = raw[sy2*srcW+sx] * (1-ax) + raw[sy2*srcW+sx2] * ax;
+      float temp = t1 * (1-ay) + t2 * ay;
+      
+      display[y*dstW + x] = tempToColor(temp, minT, maxT);
+    }
+  }
 }
 
 void setup() {
@@ -75,7 +96,7 @@ void setup() {
   Serial.println("[OK] MLX90640 initialised.");
   mlx.setMode(MLX90640_CHESS);
   mlx.setResolution(MLX90640_ADC_18BIT);
-  mlx.setRefreshRate(MLX90640_4_HZ);
+  mlx.setRefreshRate(MLX90640_16_HZ);
 
   // ── TFT display
 #ifdef USE_TFT_DISPLAY
@@ -140,17 +161,19 @@ void loop() {
     tMin = min(tMin, frame[i]);
     tMax = max(tMax, frame[i]);
   }
-  // Draw 32×24 pixels scaled 7× → ~224×168 centred on 240×320 display
-  const int SCALE = 7;
-  const int XOFF  = (320 - 32 * SCALE) / 2;
-  const int YOFF  = (240 - 24 * SCALE) / 2;
-  for (int y = 0; y < 24; y++) {
-    for (int x = 0; x < 32; x++) {
-      float t  = frame[y * 32 + x];
-      uint16_t c = tempToColor(t, tMin, tMax);
-      tft.fillRect(XOFF + x * SCALE, YOFF + y * SCALE, SCALE, SCALE, c);
-    }
+  
+  // Allocate buffer for 320x240 image
+  // Note: 320x240 * 2 bytes = 153.6 KB, which fits in ESP32 heap.
+  uint16_t* display_buf = (uint16_t*) malloc(320 * 240 * sizeof(uint16_t));
+  if (display_buf != NULL) {
+    interpolate(frame, display_buf, tMin, tMax, 32, 24, 320, 240);
+    // Push entire image to screen at once using Adafruit_GFX drawRGBBitmap
+    tft.drawRGBBitmap(0, 0, display_buf, 320, 240);
+    free(display_buf);
+  } else {
+    Serial.println("[WARN] Failed to allocate display buffer!");
   }
+  
   // Print temperature range overlay
   tft.fillRect(0, 0, 320, 20, ST77XX_BLACK);
   tft.setCursor(4, 2);

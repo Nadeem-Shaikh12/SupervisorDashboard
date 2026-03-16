@@ -1,15 +1,15 @@
-const API_BASE = "http://localhost:8002";
+const API_BASE = "http://localhost:3000";
 let currentModalUid = null;
 let chartInstance = null;
 
 async function fetchStats() {
     try {
-        const res = await fetch(`${API_BASE}/dashboard/stats`);
+        const res = await fetch(`${API_BASE}/stats`);
         const data = await res.json();
 
         document.getElementById('stat-total').innerText = data.total_inspections;
-        document.getElementById('stat-ok-rate').innerText = `${((data.ok_count / Math.max(1, data.total_inspections)) * 100).toFixed(1)}%`;
-        document.getElementById('stat-defect-rate').innerText = `${data.defect_rate_percent}%`;
+        document.getElementById('stat-ok-rate').innerText = `${data.yield_percent}%`;
+        document.getElementById('stat-defect-rate').innerText = `${data.defect_percent}%`;
         document.getElementById('stat-warning').innerText = data.warning_count;
 
         updateChart(data);
@@ -18,7 +18,7 @@ async function fetchStats() {
 
 async function fetchFeed(query = "") {
     try {
-        const url = query ? `${API_BASE}/dashboard/inspections?search=${query}` : `${API_BASE}/dashboard/inspections`;
+        const url = `${API_BASE}/results`;
         const res = await fetch(url);
         const data = await res.json();
         const tbody = document.getElementById('tableBody');
@@ -130,124 +130,14 @@ function updateChart(data) {
 }
 
 
-// --- Digital Twin & WebSockets Phase-5 ---
-const dtwinNodes = [
-    { id: "forge", x: 60, title: "Forge", color: "#666" },
-    { id: "heattreat", x: 250, title: "Heat Treat", color: "#666" },
-    { id: "cooling", x: 440, title: "Cooling", color: "#666" },
-    { id: "inspection", x: 630, title: "Inspection Node", color: "#666" }
-];
-
-function drawDigitalTwin(activeStatus = "OK") {
-    const svg = document.getElementById("factory-svg");
-    svg.innerHTML = "";
-
-    // Draw edges
-    for (let i = 0; i < dtwinNodes.length - 1; i++) {
-        let line = `<line x1="${dtwinNodes[i].x + 10}" y1="40" x2="${dtwinNodes[i + 1].x - 10}" y2="40" stroke="#555" stroke-width="3" />`;
-        svg.innerHTML += line;
-    }
-
-    // Determine color of inspection node dynamically
-    const colors = { "OK": "#4caf50", "WARNING": "#fb8c00", "NOK": "#ef5350" };
-    dtwinNodes[3].color = colors[activeStatus] || "#666";
-
-    // Draw nodes
-    dtwinNodes.forEach(node => {
-        let circle = `<circle cx="${node.x}" cy="40" r="15" fill="${node.color}" stroke="#fff" stroke-width="2" />`;
-        let text = `<text x="${node.x}" y="70" fill="#fff" font-size="12" text-anchor="middle">${node.title}</text>`;
-        svg.innerHTML += circle + text;
-    });
-}
-drawDigitalTwin();
-
-const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/inspections`);
-
-ws.onmessage = (event) => {
-    // Realtime Factory Event Triggered
-    const data = JSON.parse(event.data);
-
-    // Alert immediately without polling (Phase-5 Maintenance Alert)
-    if (data.maintenance_alert) {
-        alert("MAINTENANCE ALERT [LINE]: " + data.maintenance_alert.issue);
-    }
-
-    // Append a new row to the inspection table (Real-time update)
-    const tbody = document.getElementById('tableBody');
-    const tr = document.createElement("tr");
-
-    // Color mapping
-    const statusColors = {
-        "OK": "#4caf50",
-        "WARNING": "#fb8c00",
-        "NOK": "#ef5350"
-    };
-    const color = statusColors[data.status] || "white";
-
-    tr.innerHTML = `
-        <td>${data.part_uid}</td>
-        <td>${data.component_name}</td>
-        <td>${data.temperature.toFixed(1)}</td>
-        <td style="color: ${color}; font-weight: bold;">${data.status}</td>
-        <td>Pending</td>
-        <td>${data.timestamp}</td>
-        <td><button onclick="openModal('${data.part_uid}')">Details</button></td>
-    `;
-
-    // Insert at the top
-    tbody.insertBefore(tr, tbody.firstChild);
-
-    // Limit table rows to prevent bloat
-    if (tbody.children.length > 50) {
-        tbody.removeChild(tbody.lastChild);
-    }
-
-    // UPGRADE 4: Update the production line digital twin node colours
-    if (typeof updateDigitalTwin === "function") {
-        updateDigitalTwin(data.status);
-    }
-    fetchStats();
-    if (!document.getElementById('searchInput').value && !currentModalUid) {
-        // We refreshed the table row above; full re-fetch on demand
-        // fetchFeed();
-    }
-};
-
-async function fetchCaptureStatus() {
-    try {
-        const res = await fetch("http://127.0.0.1:8001/status");
-        const data = await res.json();
-        const feedElem = document.getElementById('feed-device-id');
-        const backendElem = document.getElementById('feed-backend');
-
-        if (feedElem) feedElem.innerText = data.device_id;
-        if (backendElem) backendElem.innerText = data.backend;
-
-        const feedTitle = document.querySelector('.live-feed-container h3');
-        if (feedTitle) {
-            if (data.backend === "SIMULATOR") {
-                feedTitle.innerHTML = "🧪 SIMULATOR Thermal Feed";
-                feedTitle.style.color = "#4fc3f7"; // Light blue for simulator
-            } else {
-                feedTitle.innerHTML = "🔴 ESP32 Live Thermal Feed";
-                feedTitle.style.color = "#fff";
-            }
-        }
-    } catch (e) {
-        const backendElem = document.getElementById('feed-backend');
-        if (backendElem) backendElem.innerText = "Offline";
-    }
-}
+// (Removed WebSocket dependency since we are polling every 5s per user request)
 
 // Initial loads and auto-refresh
 fetchStats();
 fetchFeed();
-fetchCaptureStatus();
 setInterval(() => {
     if (!document.getElementById('searchInput').value && !currentModalUid) {
         fetchStats();
         fetchFeed();
-        fetchCaptureStatus();
     }
 }, 5000);

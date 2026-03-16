@@ -59,10 +59,9 @@ logger = logging.getLogger("run_live_thermal")
 
 # ── Status colours (BGR) ──────────────────────────────────────────────────────
 STATUS_COLORS = {
-    "NORMAL":   (50, 200, 80),    # green
+    "OK":       (50, 200, 80),    # green
     "WARNING":  (0, 180, 255),    # orange
-    "CRITICAL": (0, 80, 255),     # red-orange
-    "FAILURE":  (0, 0, 220),      # red
+    "NOK":      (0, 0, 220),      # red
     "UNKNOWN":  (160, 160, 160),  # grey
 }
 
@@ -93,14 +92,12 @@ def _classify_status(max_temp: float, rule: dict | None) -> str:
         crit   = rule.get("critical_temp",   cfg.TEMP_WARNING)
         fail   = rule.get("failure_temp",    cfg.TEMP_DANGER)
 
-    if max_temp >= fail:
-        return "FAILURE"
-    elif max_temp >= crit:
-        return "CRITICAL"
+    if max_temp >= crit:
+        return "NOK"
     elif max_temp >= n_max:
         return "WARNING"
     else:
-        return "NORMAL"
+        return "OK"
 
 
 def _fetch_all_components() -> list[dict]:
