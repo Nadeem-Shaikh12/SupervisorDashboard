@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,6 +10,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Serve static thermal images saved by the Python script
+app.use(express.static(path.join(__dirname, '../data/snapshots')));
 
 // MongoDB Configuration
 const uri = process.env.MONGO_URI || "mongodb+srv://harsh1:%23london%261234@harsh1.hfifgiu.mongodb.net/";
@@ -95,7 +98,47 @@ app.get('/results', async (req, res) => {
 });
 
 /**
- * 3. GET /stats
+ * 3. GET /dashboard/inspection/:uid
+ * Fetch details of a single inspection for the modal
+ */
+app.get('/dashboard/inspection/:uid', async (req, res) => {
+    try {
+        const uid = req.params.uid;
+        const result = await collection.findOne({ part_uid: uid });
+        if (!result) return res.status(404).json({ error: "Inspection not found" });
+        res.json(result);
+    } catch (error) {
+        console.error("Error fetching inspection:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+/**
+ * 4. POST /dashboard/verify/:uid
+ * Save supervisor verification override
+ */
+app.post('/dashboard/verify/:uid', async (req, res) => {
+    try {
+        const uid = req.params.uid;
+        const { verified_status, verified_by } = req.body;
+        
+        const result = await collection.updateOne(
+            { part_uid: uid },
+            { $set: { verified_status, verified_by } }
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "Inspection not found" });
+        }
+        res.json({ message: "Verification saved successfully" });
+    } catch (error) {
+        console.error("Error verifying inspection:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+/**
+ * 5. GET /stats
  * Return aggregated statistics: total, OK count, NOK count, yield %
  */
 app.get('/stats', async (req, res) => {
