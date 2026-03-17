@@ -19,7 +19,7 @@
 
 body {
     font-family: 'Roboto', sans-serif;
-    background-color: var(--bg-dark);
+    background: radial-gradient(circle at top right, #1f2c4d 0%, #0b1022 45%, #05080f 100%);
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
