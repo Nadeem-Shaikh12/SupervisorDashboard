@@ -22,18 +22,21 @@ const client = new MongoClient(uri);
 let db, collection;
 let clients = [];
 
-// Connect to MongoDB
-async function connectDB() {
-    try {
-        await client.connect();
-        db = client.db("dreamvision");
-        collection = db.collection("inspections");
-        console.log("✅ Connected to MongoDB Atlas");
-    } catch (error) {
-        console.error("❌ MongoDB connection error:", error);
+// MongoDB Connection Middleware - Ensure DB is connected before handling requests
+app.use(async (req, res, next) => {
+    if (!collection) {
+        try {
+            await client.connect();
+            db = client.db("dreamvision");
+            collection = db.collection("inspections");
+            console.log("✅ Connected to MongoDB Atlas");
+        } catch (error) {
+            console.error("❌ MongoDB connection error:", error);
+            return res.status(500).json({ error: "Database connection failed" });
+        }
     }
-}
-connectDB();
+    next();
+});
 
 // ── API ROUTES ──────────────────────────────────────────────────────────────
 
@@ -205,7 +208,11 @@ app.get('/stats', async (req, res) => {
     }
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 DreamVision Express API running on port ${PORT}`);
-});
+// Start Server (only if not running as a Vercel serverless function)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 DreamVision Express API running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
