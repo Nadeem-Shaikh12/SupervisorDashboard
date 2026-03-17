@@ -6,3 +6,4 @@ data/rgb_images/*
 data/processed_images/*
 logs/
 *.db
+*_log.txt

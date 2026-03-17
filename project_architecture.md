@@ -97,3 +97,22 @@ While functional, the current architecture mixes Edge and Cloud responsibilities
 * Sunset one of the APIs purely for external processing. 
 * Keep the Edge AI server purely for local low-latency operations (like shutting off a physical machine).
 * Rely entirely on the Express Node.js backend acting as the Cloud gateway for long-term historical aggregations and global dashboards. 
+
+## 6. Component Level Breakdown
+
+### A. Express Backend (`express_backend/index.js`)
+* **Role**: Serves as the cloud-facing REST API providing a unified interface to the MongoDB Atlas backend.
+* **Core Functions**:
+  * `POST /inspection`: Receives new inspection records (from Python edge routers or ESP32 devices directly), calculates preliminary status (OK/WARNING/NOK), and performs an upsert by `part_uid`. It pushes Server-Sent Events (SSE) updates via `/stream`.
+  * `GET /results`: Retrieves the latest 50 inspection events.
+  * `GET /stats`: Aggregates the yield, defect percentages, and status counts globally across the system.
+* **Deployment Context**: Typically deployed to a cloud provider like Render (`render_deployment_guide.md`), exposing the database seamlessly to any web-based dashboards globally (like Netlify).
+
+### B. Hardware Diagnostics & Scanning Scripts
+* **`diag_stream.py`**: A small utility script to ping the Edge Server Stream (`http://localhost:8001/stream`) and confirm if chunked video bytes are successfully being delivered over HTTP.
+* **`scan_esp32_endpoints.py`**: Helps discover ESP32 streaming endpoints on a local network (e.g. `192.168.4.1`) across common ports (`80, 81, 8000`) looking for known streaming paths. This is extremely useful for headless setup when the IP or configuration changes dynamically.
+
+### C. Firmware Build Configurations (`firmware/platformio.ini`)
+* **Environment**: Configured for ESP32 utilizing the Arduino framework.
+* **Libraries**: Strictly specifies dependencies on `Adafruit MLX90640` (the core thermal camera), `Adafruit GFX Library`, and an optional `Adafruit-ST7735-Library` Driver for debugging via a TFT LCD.
+* **Implications**: The hardware is not acting strictly as an IP webcam; it has the MLX sensor directly connected over I2C, and relies on Espressif WiFi logic to broadcast the data array on a specific web port.

@@ -39,7 +39,39 @@ def get_single_inspection(part_uid: str):
 @dashboard_router.get("/stats")
 def get_statistics():
     """Returns high-level global aggregations resolving UI stats bars and charts."""
-    return calculate_production_stats()
+    stats = calculate_production_stats()
+    # Harmonize with script.js requirements
+    # Yield = (OK + WARNING) / Total
+    total = stats["total_inspections"]
+    yield_val = 0
+    defect_val = 0
+    if total > 0:
+        pass_count = stats["ok_count"] + stats["warning_count"]
+        yield_val = round((pass_count / total) * 100, 1)
+        defect_val = round((stats["nok_count"] / total) * 100, 1)
+    
+    stats["yield_percent"] = yield_val
+    stats["defect_percent"] = defect_val
+    return stats
+
+@dashboard_router.get("/stream")
+async def sse_stream():
+    """
+    Simplified SSE stream for dashboard updates.
+    Yields a ping every 30s to keep connection alive.
+    In a real system, this would be tied to internal event brokers.
+    """
+    from fastapi.responses import StreamingResponse
+    import asyncio
+
+    async def event_generator():
+        while True:
+            # Simple keep-alive
+            yield f"data: {{\"connected\": true}}\n\n"
+            await asyncio.sleep(30)
+
+    # Note: Modern script.js handles polling now, but we keep this for EventSource compatibility
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @dashboard_router.post("/verify/{part_uid}")
 def post_verification(part_uid: str, req: VerifyRequest):
