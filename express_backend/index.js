@@ -13,7 +13,7 @@ app.use(express.json());
 // Serve static thermal images saved by the Python script
 app.use(express.static(path.join(__dirname, '../data/snapshots')));
 // Serve the Supervisor Dashboard frontend
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB Configuration
 const uri = process.env.MONGO_URI || "mongodb+srv://harsh1:%23london%261234@harsh1.hfifgiu.mongodb.net/";
