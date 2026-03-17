@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8002/dashboard";
+const API_BASE = "";
 let currentModalUid = null;
 let chartInstance = null;
 
@@ -18,7 +18,7 @@ async function fetchStats() {
 
 async function fetchFeed(query = "") {
     try {
-        const url = query ? `${API_BASE}/inspections?search=${query}` : `${API_BASE}/inspections`;
+        const url = `${API_BASE}/results`;
         const res = await fetch(url);
         const data = await res.json();
         const tbody = document.getElementById('tableBody');
@@ -54,7 +54,7 @@ function resetSearch() {
 
 async function openModal(uid) {
     try {
-        const res = await fetch(`${API_BASE}/inspection/${uid}`);
+        const res = await fetch(`${API_BASE}/dashboard/inspection/${uid}`);
         const data = await res.json();
         currentModalUid = uid;
 
@@ -87,7 +87,7 @@ async function submitVerification() {
     const user = document.getElementById('logged-user').innerText;
 
     try {
-        const res = await fetch(`${API_BASE}/verify/${currentModalUid}`, {
+        const res = await fetch(`${API_BASE}/dashboard/verify/${currentModalUid}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ verified_status: status, verified_by: user })
