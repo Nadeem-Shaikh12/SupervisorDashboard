@@ -1,40 +1,93 @@
-# DreamVision Smart Factory Platform
+# Supervisor Dashboard
 
-DreamVision is a cutting-edge Industry 4.0 smart factory inspection system that automatically pairs hardware like ESP32-S3 thermal glasses with a resilient, latency-free Edge AI server to ingest, evaluate, and trace automotive components natively.
+A real-time thermal inspection dashboard for the DreamVision Smart Factory platform.
 
-## System Workflow & Architecture
-* **Capture Edge Device (Hardware)**: Extracts MJPEG thermal frames.
-* **Edge Server Pipeline (`/edge_server`)**: Decompresses frames, evaluates the heat maps against the `data/components.csv` dataset, extracts temperatures using ML-trained `scikit-learn` algorithms, determines defect status (OK/WARNING/NOK), and triggers the cloud and SQLite storage.
-* **Smart Factory Analytics (`/analytics`)**: Runs native Z-score process anomaly detection alongside a long-term moving-average trend maintenance engine to alert supervisors natively.
-* **Supervisor Web Dashboard (`/frontend`)**: Single-Page API displaying the Digital Twin metrics, traceability analytics, and Supervisor Verification workflows instantly triggered over REST/WebSockets.
+## Features
 
-## Installation Instructions
+- **Real-time Thermal Monitoring**: Live thermal camera feed display
+- **Inspection History**: View all component inspections with detailed metrics
+- **Anomaly Detection**: AI-powered defect identification and classification
+- **Digital Twin Integration**: Interactive factory layout visualization
+- **WebSocket Streaming**: Real-time data updates from thermal sensors
+- **RESTful API**: Complete API for inspection data management
 
-1. Clone the repository natively:
-   ```bash
-   git clone https://github.com/bhagyawantganesh48/DreanVision.git
-   cd DreamVision
-   ```
+## Quick Start
 
-2. Establish Dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Prerequisites
+- Python 3.8+
+- Node.js (optional, for additional frontend features)
 
-3. Provision your Local Runtime Environment by launching the System Validator:
-   ```bash
-   python run_smart_factory.py
-   ```
+### Installation
 
-## Dashboard Usage Instructions
+1. Clone the repository:
+```bash
+git clone https://github.com/Nadeem-Shaikh12/SupervisorDashboard.git
+cd SupervisorDashboard
+```
 
-The Web UI hosts directly off the FastAPI framework seamlessly without any Nginx configuration blocks!
+2. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-1. Start up your native Edge factory server:
-   ```bash
-   python edge_server/api/server.py
-   ```
-2. Open your standard web browser and head exactly to:
-   **http://localhost:8002/app/index.html**
+3. Start the dashboard server:
+```bash
+python edge_server/api/server.py
+```
 
-3. You can explore the active pipeline metrics, review Digital Twin SVG architectures natively, query the SQLite DB seamlessly using UID hashes, and explicitly update tracking parameters triggering CSV export.
+4. Open your browser and navigate to:
+```
+http://localhost:8002/app/index.html
+```
+
+## Architecture
+
+### Frontend
+- `index.html` - Main dashboard interface
+- `style.css` - Dashboard styling
+- `script.js` - Frontend logic and WebSocket handling
+- `digital_twin.js` - Digital twin visualization
+
+### Backend
+- `edge_server/api/server.py` - FastAPI server with WebSocket support
+- `dashboard/api/dashboard_routes.py` - Dashboard-specific API endpoints
+
+## API Endpoints
+
+### Inspections
+- `GET /inspections` - List all inspections
+- `GET /inspection/{part_uid}` - Get specific inspection details
+
+### Real-time Updates
+- WebSocket: `/ws/inspections` - Real-time inspection updates
+
+## Configuration
+
+The dashboard connects to thermal inspection devices and displays real-time data. Configure your ESP32 thermal sensors to send data to the dashboard server.
+
+## Development
+
+### Project Structure
+```
+SupervisorDashboard/
+├── edge_server/
+│   └── api/
+│       └── server.py          # Main FastAPI server
+├── dashboard/
+│   └── api/
+│       └── dashboard_routes.py # Dashboard API routes
+├── index.html                 # Main dashboard page
+├── script.js                  # Frontend JavaScript
+├── style.css                  # Dashboard styles
+├── digital_twin.js           # Digital twin logic
+└── requirements.txt          # Python dependencies
+```
+
+### Adding New Features
+1. Frontend changes: Modify HTML/CSS/JS files
+2. Backend changes: Update FastAPI routes in `dashboard_routes.py`
+3. Real-time features: Use WebSocket connections for live updates
+
+## License
+
+This project is part of the DreamVision Smart Factory platform.

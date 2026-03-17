@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamVision Supervisor Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+      body { visibility: visible; }
+      .navbar, .dashboard, .panel { transition: all 0.2s ease; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">🏭 DreamVision <span>Supervisor Dashboard v2</span></div>
+        <div class="user-info">Logged in as: <strong id="logged-user">Supervisor_01</strong></div>
+    </header>
+
+    <main class="dashboard">
+
+        <!-- ── Thermal Camera Assessment Control Panel (full width) ── -->
+        <section class="panel control-panel">
+            <h2>🔍 Thermal Camera Assessment</h2>
+            <div class="inspect-controls">
+                <div class="control-row">
+                    <label for="component-select">Select Component</label>
+                    <select id="component-select">
+                        <option value="crankcase">Crankcase (Engine)</option>
+                        <option value="exhaust_manifold">Exhaust Manifold (Exhaust)</option>
+                        <option value="brake_rotor">Brake Rotor (Brakes)</option>
+                        <option value="cylinder_head">Cylinder Head (Engine)</option>
+                        <option value="battery_pack">Battery Pack (Electrical)</option>
+                    </select>
+                </div>
+                <button onclick="triggerAssessment()" class="btn-verify" style="margin-top: 15px;">Assess Component</button>
+            </div>
+        </section>
+
+        <!-- Statistics Panel -->
+        <section class="panel stats-panel">
+            <h2>Production Analytics</h2>
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <h3>Total Inspections</h3>
+                    <p id="stat-total">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>OK Rate</h3>
+                    <p id="stat-ok-rate">0%</p>
+                </div>
+                <div class="stat-card danger">
+                    <h3>Defect Rate</h3>
+                    <p id="stat-defect-rate">0%</p>
+                </div>
+                <div class="stat-card warning">
+                    <h3>Warnings</h3>
+                    <p id="stat-warning">0</p>
+                </div>
+            </div>
+
+            <div class="charts">
+                <canvas id="defectChart"></canvas>
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="window.open('/dashboard/report/csv')">Export CSV Report</button>
+            </div>
+        </section>
+
+        <!-- Live Feed & Traceability -->
+        <section class="panel main-feed">
+            <div class="feed-header">
+                <h2>Real-Time Inspection Monitor</h2>
+                <div class="search-box">
+                    <input id="searchInput" type="text" placeholder="Search by UID or component…">
+                    <button onclick="searchInspections()">Search</button>
+                    <button class="secondary" onclick="resetSearch()">Reset</button>
+                </div>
+            </div>
+
+
+            <div class="table-container">
+                <table id="inspectionTable">
+                    <thead>
+                        <tr>
+                            <th>Part UID</th>
+                            <th>Component</th>
+                            <th>Temp (°C)</th>
+                            <th>Status</th>
+                            <th>Verification</th>
+                            <th>Timestamp</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-uid">Part UID</h2>
+            <div class="modal-body">
+                <div class="modal-image">
+                    <img id="modal-img" src="" alt="Thermal Scan">
+                </div>
+                <div class="modal-info">
+                    <p><strong>Component:</strong> <span id="modal-component"></span></p>
+                    <p><strong>Temperature:</strong> <span id="modal-temp"></span>°C</p>
+                    <p><strong>Detected Status:</strong> <span id="modal-status" class="badge"></span></p>
+                    <p><strong>Timestamp:</strong> <span id="modal-time"></span></p>
+
+                    <hr>
+
+                    <h3>Supervisor Verification</h3>
+                    <p>Current Status: <strong id="modal-verified">Pending</strong></p>
+
+                    <div class="verify-controls">
+                        <select id="verify-select">
+                            <option value="OK">Mark as OK</option>
+                            <option value="WARNING">Mark as WARNING</option>
+                            <option value="NOK">Mark as NOK</option>
+                        </select>
+                        <button class="btn-verify" onclick="submitVerification()">Verify & Override</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
