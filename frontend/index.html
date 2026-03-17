@@ -5,54 +5,154 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DreamVision Supervisor Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="Real-time thermal inspection supervisor dashboard for DreamVision Smart Factory platform.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+
+    <!-- ── Top Navigation Bar ───────────────────────────────────── -->
     <header class="navbar">
-        <div class="logo">🏭 DreamVision <span>Supervisor Dashboard</span></div>
-        <div class="user-info">Logged in as: <strong id="logged-user">Supervisor_01</strong></div>
+        <div class="navbar-left">
+            <div class="logo-icon">🏭</div>
+            <div class="logo-text">
+                <span class="logo-title">DreamVision</span>
+                <span class="logo-subtitle">Supervisor Dashboard</span>
+            </div>
+        </div>
+        <div class="navbar-center">
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span id="connection-status">Live</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <div class="user-badge">
+                <div class="user-avatar">S</div>
+                <div class="user-info">
+                    <span class="user-label">Logged in as</span>
+                    <strong id="logged-user">Supervisor_01</strong>
+                </div>
+            </div>
+        </div>
     </header>
 
+    <!-- ── Toast Notification ───────────────────────────────────── -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- ── Main Dashboard ───────────────────────────────────────── -->
     <main class="dashboard">
-        <!-- Statistics Panel -->
-        <section class="panel stats-panel">
-            <h2>Production Analytics</h2>
-            <div class="stats-cards">
-                <div class="stat-card">
-                    <h3>Total Inspections</h3>
-                    <p id="stat-total">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>OK Rate</h3>
-                    <p id="stat-ok-rate">0%</p>
-                </div>
-                <div class="stat-card danger">
-                    <h3>Defect Rate</h3>
-                    <p id="stat-defect-rate">0%</p>
-                </div>
-                <div class="stat-card warning">
-                    <h3>Warnings</h3>
-                    <p id="stat-warning">0</p>
-                </div>
-            </div>
 
-            <div class="charts">
-                <canvas id="defectChart"></canvas>
-            </div>
-            <div style="margin-top: 20px;">
-                <button onclick="window.open('/dashboard/report/csv')">Export CSV Report</button>
-            </div>
-        </section>
+        <!-- LEFT COLUMN -->
+        <aside class="left-column">
 
-        <!-- Live Feed & Traceability -->
-        <section class="panel main-feed">
+            <!-- Thermal Camera Assessment Card -->
+            <section class="card assess-card">
+                <div class="card-header">
+                    <div class="card-icon">🔍</div>
+                    <h2>Thermal Camera Assessment</h2>
+                </div>
+                <div class="assess-controls">
+                    <div class="form-group">
+                        <label for="component-select">Select Component</label>
+                        <select id="component-select" class="styled-select">
+                            <option value="crankcase">Crankcase (Engine)</option>
+                            <option value="exhaust_manifold">Exhaust Manifold</option>
+                            <option value="brake_rotor">Brake Rotor</option>
+                            <option value="cylinder_head">Cylinder Head</option>
+                            <option value="battery_pack">Battery Pack</option>
+                        </select>
+                    </div>
+                    <button id="assess-btn" onclick="triggerAssessment()" class="btn-assess">
+                        <span class="btn-icon">⚡</span>
+                        Assess Component
+                    </button>
+                </div>
+            </section>
+
+            <!-- Production Analytics Cards -->
+            <section class="card analytics-card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <h2>Production Analytics</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card accent">
+                        <div class="stat-icon">🔢</div>
+                        <div class="stat-info">
+                            <p class="stat-value" id="stat-total">0</p>
+                            <h3 class="stat-label">Total Inspections</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card ok">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <p class="stat-value" id="stat-ok-rate">0%</p>
+                            <h3 class="stat-label">OK Rate</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-info">
+                            <p class="stat-value" id="stat-defect-rate">0%</p>
+                            <h3 class="stat-label">Defect Rate</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-info">
+                            <p class="stat-value" id="stat-warning">0</p>
+                            <h3 class="stat-label">Warnings</h3>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Donut Chart -->
+            <section class="card chart-card">
+                <div class="card-header">
+                    <div class="card-icon">🎯</div>
+                    <h2>Defect Distribution</h2>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="defectChart"></canvas>
+                </div>
+                <div class="chart-actions">
+                    <button class="btn-secondary" onclick="window.open('/dashboard/report/csv')">
+                        📥 Export CSV Report
+                    </button>
+                </div>
+            </section>
+
+            <!-- Digital Twin Panel -->
+            <section class="card">
+                <div id="digital-twin-panel"></div>
+            </section>
+
+        </aside>
+
+        <!-- RIGHT COLUMN -->
+        <section class="right-column card">
             <div class="feed-header">
-                <h2>Real-Time Inspection Monitor</h2>
+                <div class="feed-title">
+                    <div class="card-icon">📋</div>
+                    <h2>Real-Time Inspection Monitor</h2>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔎  Search part, component..." oninput="searchInspections()">
+                    <button class="btn-secondary" onclick="resetSearch()">Reset</button>
+                </div>
             </div>
-
 
             <div class="table-container">
                 <table id="inspectionTable">
@@ -69,37 +169,61 @@
                     </thead>
                     <tbody id="tableBody">
                         <!-- Rows populated via JS -->
+                        <tr class="empty-row">
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <span>🌡️</span>
+                                    <p>No inspections yet. Run an assessment to populate data.</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </section>
+
     </main>
 
-    <!-- Detail Modal -->
+    <!-- ── Detail Modal ─────────────────────────────────────────── -->
     <div id="detailModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2 id="modal-uid">Part UID</h2>
+            <div class="modal-header">
+                <h2 id="modal-uid">Part UID</h2>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
             <div class="modal-body">
                 <div class="modal-image">
                     <img id="modal-img" src="" alt="Thermal Scan">
+                    <p class="img-caption">Thermal Scan Image</p>
                 </div>
                 <div class="modal-info">
-                    <p><strong>Component:</strong> <span id="modal-component"></span></p>
-                    <p><strong>Temperature:</strong> <span id="modal-temp"></span>°C</p>
-                    <p><strong>Detected Status:</strong> <span id="modal-status" class="badge"></span></p>
-                    <p><strong>Timestamp:</strong> <span id="modal-time"></span></p>
+                    <div class="info-row">
+                        <span class="info-label">Component</span>
+                        <span class="info-value" id="modal-component">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Temperature</span>
+                        <span class="info-value" id="modal-temp">—</span><span class="unit">°C</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Detected Status</span>
+                        <span class="info-value badge" id="modal-status">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Timestamp</span>
+                        <span class="info-value" id="modal-time">—</span>
+                    </div>
 
-                    <hr>
+                    <hr class="divider">
 
-                    <h3>Supervisor Verification</h3>
-                    <p>Current Status: <strong id="modal-verified">Pending</strong></p>
+                    <h3 class="verify-title">🔒 Supervisor Verification</h3>
+                    <p class="verify-current">Current Status: <strong id="modal-verified">Pending</strong></p>
 
                     <div class="verify-controls">
-                        <select id="verify-select">
-                            <option value="OK">Mark as OK</option>
-                            <option value="WARNING">Mark as WARNING</option>
-                            <option value="NOK">Mark as NOK</option>
+                        <select id="verify-select" class="styled-select">
+                            <option value="OK">✅ Mark as OK</option>
+                            <option value="WARNING">⚠️ Mark as WARNING</option>
+                            <option value="NOK">❌ Mark as NOK</option>
                         </select>
                         <button class="btn-verify" onclick="submitVerification()">Verify & Override</button>
                     </div>
@@ -108,8 +232,10 @@
         </div>
     </div>
 
+    <!-- ── Scripts ──────────────────────────────────────────────── -->
     <script src="digital_twin.js"></script>
     <script src="script.js"></script>
+
 </body>
 
 </html>
